@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cloud Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <h1>☁️ Cloud Deployment Dashboard</h1>
+
+    <!-- Stats -->
+    <div class="card stats">
+        <div class="stat-box cpu">
+            <h2>CPU</h2>
+            <p>{{ stats.cpu }}%</p>
+        </div>
+
+        <div class="stat-box memory">
+            <h2>Memory</h2>
+            <p>{{ stats.memory }}%</p>
+        </div>
+    </div>
+
+    <!-- Graph -->
+    <div class="card">
+        <h2>📊 CPU Usage Graph</h2>
+        <div class="chart-container">
+            <canvas id="cpuChart" width="400" height="250"></canvas>
+        </div>
+    </div>
+
+    <!-- 🚀 DEPLOY SECTION (UPDATED) -->
+    <div class="card">
+        <h2>🚀 Deploy Application</h2>
+
+        <form method="POST" action="/deploy" onsubmit="showMessage()">
+            
+            <input type="text" name="name" placeholder="Enter App Name" required>
+            <br><br>
+
+            <input type="text" name="image" id="imageInput" placeholder="Enter Docker Image (e.g. nginx)" required>
+            <br><br>
+
+            <label>Select Common Image:</label>
+            <select onchange="setImage(this.value)">
+                <option value="">-- Select Image --</option>
+                <option value="nginx">Nginx</option>
+                <option value="httpd">Apache</option>
+                <option value="redis">Redis</option>
+                <option value="mysql">MySQL</option>
+            </select>
+
+            <br><br>
+
+            <button type="submit">Deploy 🚀</button>
+            <button type="button" onclick="clearForm()">Clear ❌</button>
+        </form>
+
+        <br>
+
+        <button onclick="location.reload()">🔄 Refresh</button>
+        <button onclick="window.location.href='/'">🏠 Home</button>
+        <button onclick="window.location.href='/logout'">Logout 🔐</button>
+
+        <p id="msg" style="color:green; font-weight:bold;"></p>
+    </div>
+
+    <!-- Apps -->
+    <div class="card">
+        <h2>Deployed Apps</h2>
+        <ul>
+        {% for app in apps %}
+            <li>
+                📦 {{ app[1] }} - {{ app[2] }}
+
+                {% if app[2] == "Running" %}
+                <a href="/stop/{{ app[3] }}">
+                    <button class="stop-btn">Stop 🛑</button>
+                </a>
+                {% else %}
+                <button disabled>Stopped</button>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<!-- 📊 Graph Script -->
+<script>
+let cpuData = [];
+
+const ctx = document.getElementById('cpuChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'CPU Usage',
+            data: [],
+            borderColor: 'blue',
+            fill: false
+        }]
+    },
+    options: {
+        responsive: false
+    }
+});
+
+setInterval(() => {
+    fetch('/stats')
+    .then(res => res.json())
+    .then(data => {
+        cpuData.push(data.cpu);
+        if(cpuData.length > 10) cpuData.shift();
+
+        chart.data.labels = cpuData.map((_, i) => i);
+        chart.data.datasets[0].data = cpuData;
+        chart.update();
+    });
+}, 2000);
+</script>
+
+<!-- 🚀 Deploy Scripts -->
+<script>
+function setImage(value) {
+    document.getElementById("imageInput").value = value;
+}
+
+function clearForm() {
+    document.querySelector("form").reset();
+}
+
+function showMessage() {
+    document.getElementById("msg").innerText = "🚀 Deploying application...";
+}
+</script>
+
+</body>
+</html>
